@@ -26,23 +26,23 @@
 #include "c_speech_features.h"
 
 //TODO: infer batch size from model/use dynamic batch size
-const int BATCH_SIZE = 1;
+const unsigned int BATCH_SIZE = 1;
 
 //TODO: use dynamic sample rate
-const int SAMPLE_RATE = 16000;
+const unsigned int SAMPLE_RATE = 16000;
 
 const float AUDIO_WIN_LEN = 0.025f;
 const float AUDIO_WIN_STEP = 0.01f;
-const int AUDIO_WIN_LEN_SAMPLES = (int)(AUDIO_WIN_LEN * SAMPLE_RATE);
-const int AUDIO_WIN_STEP_SAMPLES = (int)(AUDIO_WIN_STEP * SAMPLE_RATE);
+const unsigned int AUDIO_WIN_LEN_SAMPLES = (unsigned int)(AUDIO_WIN_LEN * SAMPLE_RATE);
+const unsigned int AUDIO_WIN_STEP_SAMPLES = (unsigned int)(AUDIO_WIN_STEP * SAMPLE_RATE);
 
-const int MFCC_FEATURES = 26;
+const unsigned int MFCC_FEATURES = 26;
 
 const float PREEMPHASIS_COEFF = 0.97f;
-const int N_FFT = 512;
-const int N_FILTERS = 26;
-const int LOWFREQ = 0;
-const int CEP_LIFTER = 22;
+const unsigned int N_FFT = 512;
+const unsigned int N_FILTERS = 26;
+const unsigned int LOWFREQ = 0;
+const unsigned int CEP_LIFTER = 22;
 
 using namespace tensorflow;
 using tensorflow::ctc::CTCBeamSearchDecoder;
@@ -103,15 +103,15 @@ struct ModelState {
   MemmappedEnv* mmap_env;
   Session* session;
   GraphDef graph_def;
-  int ncep;
-  int ncontext;
+  unsigned int ncep;
+  unsigned int ncontext;
   Alphabet* alphabet;
   KenLMBeamScorer* scorer;
-  int beam_width;
+  unsigned int beam_width;
   bool run_aot;
-  int n_steps;
-  int mfcc_feats_per_timestep;
-  int n_context;
+  unsigned int n_steps;
+  unsigned int mfcc_feats_per_timestep;
+  unsigned int n_context;
 
   ModelState();
   ~ModelState();
@@ -139,7 +139,7 @@ struct ModelState {
    * @param[out] output_logits Should be large enough to fit
    *                           aNFrames * alphabet_size floats.
    */
-  void infer(const float* mfcc, int n_frames, vector<float>& output_logits);
+  void infer(const float* mfcc, unsigned int n_frames, vector<float>& output_logits);
 };
 
 ModelState::ModelState()
@@ -294,7 +294,7 @@ StreamingState::processBatch(const vector<float>& buf, unsigned int n_steps)
 }
 
 void
-ModelState::infer(const float* aMfcc, int n_frames, vector<float>& logits_output)
+ModelState::infer(const float* aMfcc, unsigned int n_frames, vector<float>& logits_output)
 {
   const size_t num_classes = alphabet->GetSize() + 1; // +1 for blank
 
@@ -410,11 +410,11 @@ ModelState::decode(vector<float>& logits)
 }
 
 int
-DS_CreateModel(char* aModelPath,
-               int aNCep,
-               int aNContext,
-               char* aAlphabetConfigPath,
-               int aBeamWidth,
+DS_CreateModel(const char* aModelPath,
+               unsigned int aNCep,
+               unsigned int aNContext,
+               const char* aAlphabetConfigPath,
+               unsigned int aBeamWidth,
                ModelState** retval)
 {
   ModelState* model = new ModelState();
@@ -531,9 +531,9 @@ DS_DestroyModel(ModelState* ctx)
 
 void
 DS_EnableDecoderWithLM(ModelState* aCtx,
-                       char* aAlphabetConfigPath,
-                       char* aLMPath,
-                       char* aTriePath,
+                       const char* aAlphabetConfigPath,
+                       const char* aLMPath,
+                       const char* aTriePath,
                        float aLMWeight,
                        float aValidWordCountWeight)
 {
@@ -543,12 +543,12 @@ DS_EnableDecoderWithLM(ModelState* aCtx,
 
 char*
 DS_SpeechToText(ModelState* aCtx,
-                short* aBuffer,
+                const short* aBuffer,
                 unsigned int aBufferSize,
-                int aSampleRate)
+                unsigned int aSampleRate)
 {
   StreamingState* ctx;
-  int status = DS_SetupStream(aCtx, 150, aSampleRate, &ctx);
+  int status = DS_SetupStream(aCtx, 0, aSampleRate, &ctx);
   if (status != tensorflow::error::OK) {
     return nullptr;
   }
@@ -578,6 +578,11 @@ DS_SetupStream(ModelState* aCtx,
 
   const size_t num_classes = aCtx->alphabet->GetSize() + 1; // +1 for blank
 
+  // Default initial allocation = 3 seconds.
+  if (aPreAllocFrames == 0) {
+    aPreAllocFrames = 150;
+  }
+
   ctx->accumulated_logits.reserve(aPreAllocFrames * BATCH_SIZE * num_classes);
 
   ctx->audio_buffer.reserve(AUDIO_WIN_LEN_SAMPLES);
@@ -596,7 +601,7 @@ DS_SetupStream(ModelState* aCtx,
 
 void
 DS_FeedAudioContent(StreamingState* aSctx,
-                    short* aBuffer,
+                    const short* aBuffer,
                     unsigned int aBufferSize)
 {
   aSctx->feedAudioContent(aBuffer, aBufferSize);
@@ -617,14 +622,14 @@ DS_FinishStream(StreamingState* aSctx)
 }
 
 void
-DS_AudioToInputVector(short* aBuffer,
+DS_AudioToInputVector(const short* aBuffer,
                       unsigned int aBufferSize,
-                      int aSampleRate,
-                      int aNCep,
-                      int aNContext,
+                      unsigned int aSampleRate,
+                      unsigned int aNCep,
+                      unsigned int aNContext,
                       float** aMfcc,
-                      int* aNFrames,
-                      int* aFrameLen)
+                      unsigned int* aNFrames,
+                      unsigned int* aFrameLen)
 {
   const int contextSize = aNCep * aNContext;
   const int frameSize = aNCep + (2 * aNCep * aNContext);

@@ -11,10 +11,10 @@ import_array();
 %}
 
 // apply NumPy conversion typemap to DS_FeedAudioContent and DS_SpeechToText
-%apply (short* IN_ARRAY1, int DIM1) {(short* aBuffer, unsigned int aBufferSize)};
+%apply (short* IN_ARRAY1, int DIM1) {(const short* aBuffer, unsigned int aBufferSize)};
 
 // apply NumPy conversion typemap to DS_AudioToInputVector
-%apply (float** ARGOUTVIEWM_ARRAY2, int* DIM1, int* DIM2) {(float** aMfcc, int* aNFrames, int* aFrameLen)};
+%apply (float** ARGOUTVIEWM_ARRAY2, unsigned int* DIM1, unsigned int* DIM2) {(float** aMfcc, unsigned int* aNFrames, unsigned int* aFrameLen)};
 
 %typemap(in, numinputs=0) ModelState **retval (ModelState *ret) {
   ret = NULL;

@@ -32,7 +32,7 @@ typedef struct {
 } ds_result;
 
 ds_result
-LocalDsSTT(ModelState* aCtx, short* aBuffer, size_t aBufferSize,
+LocalDsSTT(ModelState* aCtx, const short* aBuffer, size_t aBufferSize,
            int aSampleRate)
 {
   ds_result res = {0};
@@ -170,7 +170,7 @@ ProcessFile(ModelState* context, const char* path, bool show_times)
   // We take half of buffer_size because buffer is a char* while
   // LocalDsSTT() expected a short*
   ds_result result = LocalDsSTT(context,
-                                (short*)audio.buffer,
+                                (const short*)audio.buffer,
                                 audio.buffer_size / 2,
                                 audio.sample_rate);
   free(audio.buffer);
@@ -200,7 +200,7 @@ main(int argc, char **argv)
     return 1;
   }
 
-  if (has_lm && has_trie) {
+  if (lm && trie) {
     DS_EnableDecoderWithLM(
         ctx,
         alphabet,
